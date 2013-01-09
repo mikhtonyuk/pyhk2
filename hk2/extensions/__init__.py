@@ -1,4 +1,4 @@
-from interfaces import IPluginManager, IServiceRegistry, IPlugin, IPluginShadow, IExtension, IExtensionPoint
-from interfaces import EPParam
-from interfaces import PluginDesc
+from interfaces import IPluginManager, IServiceRegistry, IPluginShadow, IExtension, IExtensionPoint
+from interfaces import ExtParamConstraint
+from interfaces import IPlugin, PluginBase
 from interfaces import IStartListener

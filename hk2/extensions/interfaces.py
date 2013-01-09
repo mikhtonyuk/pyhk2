@@ -3,17 +3,28 @@ from hk2.types import interface, enum
 #===========================================================
 
 @interface
+class IPluginManager(object):
+    """ Plugin management system """
+    
+    def plugins(self):
+        """ Plug-in dict by name """
+    
+    def extensionPoints(self):
+        """ Extension point dict by name """
+    
+    def createInstance(self, extension):
+        """ Creates extension class instance """
+    
+    def start(self):
+        """ Fires up the hk2::start_listeners extension point """
+
+#===========================================================
+
 class IPlugin(object):
     """ Base interface for all plug-ins """
     
-    def Shadow(self):
-        """ Returns the shadow of this plug-in """
-    
-    def PluginManager(self):
-        """ Returns associated plug-in manager """
-    
-    def Init(self, plugin_manager, shadow):
-        """ Initializes the plug-in """
+    def init(self, plugin_manager, shadow):
+        pass
 
 #===========================================================
 
@@ -21,28 +32,23 @@ class IPlugin(object):
 class IExtensionPoint(object):
     """ Extension point all plug-ins can extend """
     
-    def Plugin(self):
+    def plugin(self):
         """ Returns plug-in shadow of provider """
     
-    def Name(self):
+    def name(self):
         """ Returns name of this extension point """
     
-    def FullName(self):
+    def fullName(self):
         """ Full name in format plugin_name::ep_name """
     
-    def Interface(self):
-        """ Returns interface type all extenders should implement """
+    def interfaceName(self):
+        """ Returns name of interface type that all extenders should implement """
     
-    def Parameters(self):
+    def parameters(self):
         """ Returns dictionary of parameters expected by EP """
     
-    def Extensions(self):
+    def extensions(self):
         """ Returns the list of extensions """
-    
-    def InstantiateExtension(self, ext):
-        """ Creates instance of specified extension
-            with all required validation """
-
 
 #===========================================================
 
@@ -52,22 +58,16 @@ class IExtension(object):
     that is being extended, plug-in that provides an
     extension, and a class that implements point's interface """
     
-    def ExtensionPoint(self):
-        """ Extension point that is being extended """
-    
-    def Extender(self):
+    def plugin(self):
         """ Plug-in shadow that provides extension """
     
-    def Module(self):
-        """ Module that defines the implementation class """
+    def extensionPoint(self):
+        """ Extension point that is being extended """
     
-    def Class(self):
+    def className(self):
         """ Name of the implementation class """
     
-    def FullPath(self):
-        """ Full path to the implementation class: "Module::Class" """
-    
-    def Parameters(self):
+    def parameters(self):
         """ Parameter dictionary """
 
 #===========================================================
@@ -78,47 +78,45 @@ class IPluginShadow(object):
         it holds all meta-info about plug-in, exported classes,
         extension points it extends and provides """
     
-    def Name(self):
+    def name(self):
         """ Returns name of the plug-in """
     
-    def PresentedName(self):
-        """ Returns user-friendly name """
+    def path(self):
+        """ Package path or URL of plugin """
     
-    def Version(self):
+    def description(self):
+        """ Short description of plug-in """
+    
+    def author(self):
+        """ Plug-in author name """
+    
+    def version(self):
         """ Returns plug-in version """
     
-    def GetExtensionPoint(self, shortName):
+    def getExtensionPoint(self, shortName):
         """ Searches extension point by short name """
     
-    def ExtensionPoints(self):
+    def extensionPoints(self):
         """ Returns list of extension points it provides """
     
-    def Extensions(self):
+    def extensions(self):
         """ List of provided extensions """
 
 #===========================================================
 
+@enum
+class ExtParamConstraint:
+    (Optional, Mandatory) = range(2)
+
+#===========================================================
+
 @interface
-class IPluginManager(object):
-    """ Plugin management system """
+class IPluginScanner(object):
+    def scan(self):
+        """ Should return list of found plugin shadows """
     
-    def Start(self, args = None):
-        """ Starts execution by launching start_listeners """
-    
-    def Arguments(self):
-        """ Returns arguments that were given at startup """
-    
-    def PluginsDir(self):
-        """ Returns plug-in search directory """
-    
-    def ExtensionPoints(self):
-        """ Extension point dict by name """
-    
-    def Plugins(self):
-        """ Plug-in dict by name """
-    
-    def ServiceRegistry(self):
-        """ Returns services registry """
+    def getType(self, shadow, typeName):
+        """ Should load related module and return specified type """
 
 #===========================================================
 
@@ -134,57 +132,9 @@ class IServiceRegistry(object):
 class PluginBase(IPlugin):
     """ Basic implementation of IPlugin interface """
     
-    def Init(self, plugin_manager, svc_reg, shadow):
-        self._shadow = shadow
-        self._svc_reg = svc_reg
-        self._pluginManager = plugin_manager
-    
-    def Shadow(self):
-        return self._shadow
-    
-    def PluginManager(self):
-        return self._pluginManager
-    
-    def ServiceRegistry(self):
-        return self._svc_reg
-
-#===========================================================
-# Plugin description
-#===========================================================
-
-class PluginDesc(object):
-    """ Implement this interface in plugin.py file so that
-        framewor will recognize your plug-in and load its settings
-        Required fields:
-        - PresentedName - user-friendly name of the plug- in
-        - Version - 'maj.min.bld.rev' varsion info
-        - Extensions - list of ExtensionDesc
-        - ExtensionPoints - list of ExtensionPointDesc """
-
-
-#===========================================================
-
-@enum
-class EPParam:
-    (Optional, Mandatory) = range(2)
-
-class ExtensionPointDesc(object):
-    """ Describes extension point
-        Required fields:
-        - Name - short name of the EP
-        - Interface - type of the interface
-        - Parameters - dict of parameters this EP expects
-            { name : EPParam.Optional|EPParam.Mandatory } """
-
-#===========================================================
-
-class ExtensionDesc(object):
-    """ Describes provided extension
-        Required fields:
-        - ExtensionPoint - full name of the target EP
-        - Module - name of module that contains implementation
-        - Class - name of the class that implements EP's interface
-        - Parameters - dict of parameters for EP { name : value } """
+    def init(self, plugin_manager, shadow):
+        self.shadow = shadow
+        self.manager = plugin_manager
 
 #===========================================================
 # Extension points
@@ -192,9 +142,9 @@ class ExtensionDesc(object):
 
 @interface
 class IStartListener(object):
-    """ Interface for 'start_listeners' EP """
+    """ Interface for 'hk2::start_listeners' EP """
     
-    def Start(self, args = None):
+    def start(self, args=None):
         """ Signals execution start """
 
 #===========================================================

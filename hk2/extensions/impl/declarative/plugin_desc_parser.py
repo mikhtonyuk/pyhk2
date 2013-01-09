@@ -1,24 +1,16 @@
+from hk2.extensions.impl.plugin_shadow import PluginShadow
+from hk2.extensions.impl.extension import Extension
+from hk2.extensions.impl.extension_point import ExtensionPoint
 from hk2.utils.version import Version
 
 import imp
-from hk2.extensions.interfaces import ExtensionPointDesc, EPParam
-
-#===========================================================
-
-class ExtensionPointDesc(object):
-    def __init__(self):
-        pass
-
-#===========================================================
-
-class ExtensionDesc(object):
-    def __init__(self):
-        pass
+from hk2.extensions.interfaces import ExtParamConstraint
 
 #===========================================================
 
 class PluginDescParser(object):
     def __init__(self, config):
+        self.shadow = PluginShadow()
         self._validate(config)
         
         self._loadDescription(config)
@@ -38,7 +30,9 @@ class PluginDescParser(object):
         loader = imp.new_module('hk2.extensions.loader')
         exec 'from hk2.extensions import *' in loader.__dict__
         exec stream.read() in loader.__dict__
-        return PluginDescParser(loader.plugin)
+        if 'plugin' not in loader.__dict__:
+            raise Exception('Declarative config not found')
+        return PluginDescParser(loader.plugin).shadow
     
     @staticmethod
     def parse_file(filename):
@@ -46,43 +40,42 @@ class PluginDescParser(object):
             return PluginDescParser.parse(f)
     
     def _validate(self, config):
-        root_els = ['name', 'version', 'author', 'extends', 'provides']
+        root_els = ['name', 'desc', 'version', 'author', 'extends', 'provides']
         unknown = [k for k in config if k not in root_els]
         
         if len(unknown):
             raise Exception('Unknown root parameters: %s' % (', '.join(unknown)))
     
     def _loadDescription(self, config):
-        self.name = config.get('name')
-        self.version = Version(config.get('version', '0.0.0'))
-        self.author = config.get('author', None)
+        self.shadow._name = config['name']
+        self.shadow._desc = config.get('desc')
+        self.shadow._version = Version(config.get('version', '0.0.0'))
+        self.shadow._author = config.get('author', None)
     
     def _loadProvides(self, prv):
-        self.provides = []
-        
         for ep in prv:
-            epd = ExtensionPointDesc()
-            epd.name = ep['point']
-            epd.interface = ep['interface']
-            epd.params = self._loadProvidesParams(ep.get('params', {}))
+            epd = ExtensionPoint()
+            epd._plugin = self.shadow
+            epd._name = ep['point']
+            epd._interface = ep['interface']
+            epd._params = self._loadProvidesParams(ep.get('params', {}))
             
-            self.provides.append(epd)
+            self.shadow._extensionPoints.append(epd)
     
     def _loadProvidesParams(self, params):
         for _, prop in params.iteritems():
-            assert prop in EPParam.values
+            assert prop in ExtParamConstraint.values
         
         return params
     
     def _loadExtends(self, exts):
-        self.extends = []
-        
         for ext in exts:
-            etd = ExtensionPointDesc()
-            etd.name = ext['point']
-            etd.clazz = ext['class']
+            etd = Extension()
+            etd._plugin = self.shadow
+            etd._pointName = ext['point']
+            etd._className = ext['class']
             etd.params = ext.get('params', {})
             
-            self.extends.append(etd)
+            self.shadow._extensions.append(etd)
     
     
