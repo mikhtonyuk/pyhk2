@@ -1,4 +1,4 @@
-from hk2.extensions.interfaces import IPluginManager, ExtParamConstraint
+from hk2.extensions.interfaces import IPluginManager, ExtParamConstraint, PluginBase
 
 from hk2.extensions.impl.plugin_shadow import PluginShadow
 from hk2.extensions.impl.extension_point import ExtensionPoint
@@ -16,7 +16,7 @@ class PluginManager(IPluginManager):
         self._scanner = scanner
         self._plugins = {}
         self._extensionPoints = {}
-        self._loadedPlugins = set()
+        self._resolvedModules = set()
         
         self._loadGraph()
     
@@ -30,8 +30,12 @@ class PluginManager(IPluginManager):
         ep = ext.extensionPoint()
         
         try:
-            iface = self._scanner.getType(ep.plugin(), ep.interfaceName())
-            clazz = self._scanner.getType(ext.plugin(), ext.className())
+            ep_mod, iface = self._scanner.getType(ep.plugin(), ep.interfaceName())
+            ext_mod, clazz = self._scanner.getType(ext.plugin(), ext.className())
+            
+            self._prepareModule(ep_mod, ep.plugin())
+            self._prepareModule(ext_mod, ext.plugin())
+            
             inst = clazz()
         except:
             log.exception("Extension instantiation failed EP=%s, Ext=%s" \
@@ -39,8 +43,10 @@ class PluginManager(IPluginManager):
             raise
         
         if not isinstance(inst, iface):
-            raise Exception("Extension does not implement required interface EP=%s, Ext=%s" \
-                            % (ext.extensionPoint().fullName(), ext.plugin().name()))
+            import inspect
+            base = inspect.getmro(inst.__class__)
+            raise Exception("Extension does not implement required interface EP=%s, Ext=%s Iface=%s Cls=%s Base=%s" \
+                            % (ext.extensionPoint().fullName(), ext.plugin().name(), iface, inst, base))
         
         return inst
     
@@ -78,7 +84,32 @@ class PluginManager(IPluginManager):
         shadows = self._scanner.scan()
         shadows.append(self._getKernelPlugin())
         
+        unique_plugins = set()
+        for s in shadows:
+            if s.name() in unique_plugins:
+                raise Exception("Plugin name collision '%s'" % (s.name()))
+            unique_plugins.add(s.name())
+        
         log.info("Resolving plugin graph")
         pg = PluginGraph()
         self._plugins, self._extensionPoints = pg.resolve(shadows)
+    
+    def _prepareModule(self, mod, shadow):
+        if mod not in self._resolvedModules:
+            pl_t = self._findSubclass(PluginBase, mod)
+            if pl_t:
+                pl = pl_t()
+                pl.init(shadow, self)
+            
+            self._resolvedModules.add(mod)
+        
+        return mod
+    
+    def _findSubclass(self, base, mod):
+        mn = mod.__name__
+        sc = base.__subclasses__()
+        for c in sc:
+            if c.__module__ == mn:
+                return c
+        return None
 

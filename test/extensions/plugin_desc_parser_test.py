@@ -66,4 +66,4 @@ class TestEnum(unittest.TestCase):
         p = shadow.extensions()[0]
         self.assertEqual(p._pointName, 'hk2.extensions::start_listeners')
         self.assertEqual(p.className(), 'my_plugin.MyStarter')
-        self.assertDictEqual(p.params, { 'priority' : 20 })
+        self.assertDictEqual(p.parameters(), { 'priority' : 20 })

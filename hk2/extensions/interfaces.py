@@ -116,7 +116,7 @@ class IPluginScanner(object):
         """ Should return list of found plugin shadows """
     
     def getType(self, shadow, typeName):
-        """ Should load related module and return specified type """
+        """ Should load related module and return specified (module, type) tuple """
 
 #===========================================================
 
@@ -132,7 +132,7 @@ class IServiceRegistry(object):
 class PluginBase(IPlugin):
     """ Basic implementation of IPlugin interface """
     
-    def init(self, plugin_manager, shadow):
+    def init(self, shadow, plugin_manager):
         self.shadow = shadow
         self.manager = plugin_manager
 

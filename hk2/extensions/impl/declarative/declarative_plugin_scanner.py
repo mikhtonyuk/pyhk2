@@ -1,4 +1,4 @@
-from hk2.extensions.interfaces import IPluginScanner, PluginBase
+from hk2.extensions.interfaces import IPluginScanner
 
 from hk2.extensions.impl.declarative.plugin_desc_parser import PluginDescParser
 from hk2.utils.pathutil import listdir_recursive
@@ -14,7 +14,6 @@ class DeclarativePluginScanner(IPluginScanner):
     
     def __init__(self):
         self.plugin_dirs = []
-        self.loadedPlugins = set()
         self.resolvedModules = set()
     
     def addDir(self, path, recursive=False):
@@ -24,23 +23,26 @@ class DeclarativePluginScanner(IPluginScanner):
         candidates = self._scanDirs()
         all_descs = ( self._loadPluginDesc(c) for c in candidates )
         plugin_descs = [ d for d in all_descs if d ]
+        
+        paths = [p[0] for p in self.plugin_dirs]
+        paths = [os.path.abspath(p) for p in paths or ["."]]
+        roots = [p for p in paths for pp in paths if not p.startswith(pp)]
+        for p in roots:
+            sys.path.insert(0, d)
+        
         return plugin_descs
     
     def getType(self, shadow, typeName):
         module, clazz = self._splitTypeName(typeName)
         
-        if shadow not in self.loadedPlugins:
-            if shadow.path() not in sys.path:
-                sys.path.insert(0, shadow.path())
-            self.loadedPlugins.add(shadow)
-        
-        mod = self._loadModule(shadow, module)
+        log.debug("Importing module '%s'", module)
+        mod = __import__(module, {}, {}, ['*'])
         typ = mod.__dict__.get(clazz)
         
         if not typ:
             raise Exception("Type '%s' not found in module '%s'" % (clazz, module))
         
-        return typ
+        return mod, typ
     
     def _scanDirs(self):
         candidates = []
@@ -68,31 +70,12 @@ class DeclarativePluginScanner(IPluginScanner):
         except:
             log.exception("Failed to load plugin desc in '%s'", path)
     
-    def _loadModule(self, shadow, module):
-        mod = __import__(module, {}, {}, ['*'])
-        if mod not in self.resolvedModules:
-            pl_t = self._findSubclass(PluginBase, mod)
-            if pl_t:
-                pl = pl_t()
-                pl.init(shadow)
-            
-            self.resolvedModules.add(mod)
-        
-        return mod
-    
     def _splitTypeName(self, typeName):
         p = typeName.split('.')
         module = '.'.join(p[:-1])
         clazz = p[-1]
         return module, clazz
-    
-    def _findSubclass(self, base, mod):
-        mn = mod.__name__
-        sc = base.__subclasses__()
-        for c in sc:
-            if c.__module__ == mn:
-                return c
-        return None
+
 
 
 

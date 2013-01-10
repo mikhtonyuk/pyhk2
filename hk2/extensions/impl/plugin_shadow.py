@@ -38,23 +38,3 @@ class PluginShadow(IPluginShadow):
     
     def extensions(self):
         return self._extensions
-    
-    '''
-    def _getType(self, mod, cls):
-        m = self._mod_cache.get(mod, None)
-        if not m:
-            m = mod = __import__(mod, {}, {}, ['*'])
-            self._mod_cache[mod] = m
-            pl_t = self._findSubclass(PluginBase, m)
-            if pl_t:
-                pl = pl_t()
-                pl.Init(self._manager, self._manager.ServiceRegistry(), self)
-        return m.__dict__[cls]
-
-    def _findSubclass(self, base, mod):
-        mn = mod.__name__
-        sc = base.__subclasses__()
-        for c in sc:
-            if c.__module__ == mn:
-                return c
-        return None'''

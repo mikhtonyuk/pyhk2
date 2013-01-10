@@ -74,7 +74,7 @@ class PluginDescParser(object):
             etd._plugin = self.shadow
             etd._pointName = ext['point']
             etd._className = ext['class']
-            etd.params = ext.get('params', {})
+            etd._params = ext.get('params', {})
             
             self.shadow._extensions.append(etd)
     

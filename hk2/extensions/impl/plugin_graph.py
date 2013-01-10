@@ -30,5 +30,5 @@ class PluginGraph(object):
     def _validateExtension(self, ext, point):
         for name, constr in point.parameters().iteritems():
                 if constr == ExtParamConstraint.Mandatory and name not in ext.parameters():
-                    raise Exception("Extension point parameter constraint failed EP=%s, Ext=%s" \
-                                    % (point.fullName(), ext.plugin().name()))
+                    raise Exception("Extension point parameter '%s' constraint failed EP=%s, Ext=%s" \
+                                    % (name, point.fullName(), ext.plugin().name()))
