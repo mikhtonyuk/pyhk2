@@ -1,3 +1,4 @@
+import operator
 
 #===========================================================
 
@@ -62,8 +63,25 @@ def flags(t):
             fs[k.lower()] = v
             ts[v] = k
     
-    def _to_string(c, val, default=None): return c._ts.get(val, default)
-    def _parse(c, s, default=None): return c._fs.get(s.lower(), default)
+    def _to_string(c, val, default=None):
+        if val in c.values:
+            return c._ts.get(val)
+        
+        in_values = [ v for v in c.values if v and (val & v) == v ]
+        in_values.sort()
+        if len(in_values) == 0:
+            return default
+        
+        return ' | '.join( ( c._ts.get(v) for v in in_values ) )
+    
+    def _parse(c, s, default=None):
+        elems = map(str.strip, s.split('|'))
+        valelems = [ c._fs.get(e) for e in elems ]
+        
+        if not elems or None in valelems:
+            return default
+        
+        return reduce(operator.or_, valelems)
     
     setattr(t, 'toString', classmethod(_to_string))
     setattr(t, 'parse', classmethod(_parse))
