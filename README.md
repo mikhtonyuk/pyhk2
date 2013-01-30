@@ -1,7 +1,10 @@
 pyhk2
 =====
 
-Python Hundred-Kilobyte Kernel plug-in library.
+Python Hundred-Kilobyte Kernel library.
+
+It is inspired by [HK2 library] for Java that allows easily create plug-in based applications.
+
 
 Interfaces for programming to contracts
 ---------------------------------------
@@ -82,3 +85,7 @@ for r in reporters:
 	r.report()
 </code>
 </pre>
+
+
+
+[HK2 library]:http://hk2.java.net
