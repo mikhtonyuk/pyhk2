@@ -8,17 +8,23 @@ class Container(object):
         self._binds = bindings or Bindings()
     
     def get(self, what):
-        return self._getImpl(what, [what])
+        bind = self._binds.get(what)
+        return self._getInstance(bind, [what])
     
-    def _getImpl(self, what, resolving):
-        t = self._binds.get(what)
-        inject = t.__inject__ if hasattr(t, internal.INJECT_ATTR) else []
+    def getAll(self, what):
+        binds = self._binds.getAll(what)
+        instances = [self._getInstance(t, [what]) for t in binds]
+        return instances
+    
+    def _getInstance(self, t, resolving):
+        init = t.__init__
+        inject = getattr(init, internal.INJECT_ATTR) if hasattr(init, internal.INJECT_ATTR) else []
         
         cyclic = set(inject).intersection(resolving)
         if cyclic:
             self._raiseCyclicDepsError(cyclic, resolving)
         
-        params = [self._getImpl(i, resolving + [i]) for i in inject]
+        params = [self._getInstance(self._binds.get(i), resolving + [i]) for i in inject]
         return t(*params)
     
     def _raiseCyclicDepsError(self, on_what, path):

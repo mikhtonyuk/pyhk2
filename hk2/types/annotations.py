@@ -1,47 +1,63 @@
-import inspect
+from interface import interface
+
+#===========================================================
+
+@interface
+class IAnnotationRegistry(object):
+    def add(self, clazz, ann):
+        """Associates annotation with specified class"""
+    
+    def getByClass(self, clazz):
+        """Returns all associated annotations"""
+
+#===========================================================
+
+class DictAnnotationRegistry(IAnnotationRegistry):
+    def __init__(self):
+        self._annotations = {}
+    
+    def add(self, clazz, ann):
+        annl = self._annotations.get(clazz)
+        if not annl:
+            annl = []
+            self._annotations[clazz] = annl
+        annl.append(ann)
+    
+    def getByClass(self, clazz):
+        return list(self._annotations.get(clazz, []))
+    
+    def find(self, pred):
+        return [(a,c) for c, anns in self._annotations.iteritems()
+                        for a in anns
+                          if pred(a,c)]
 
 #===========================================================
 
 class Annotations(object):
+    _registry = DictAnnotationRegistry()
     
     @staticmethod
     def getAnnotations(clazz):
-        return clazz.__annots__ if hasattr(clazz, '__annots__') else []
+        return Annotations._registry.getByClass(clazz)
     
     @staticmethod
     def addAnnotation(clazz, ann):
-        anns = []
-        if hasattr(clazz, '__annots__'):
-            anns = clazz.__annots__
-        else:
-            setattr(clazz, '__annots__', anns)
-        anns.append(ann)
+        Annotations._registry.add(clazz, ann)
     
     @staticmethod
-    def getAnnotatedClasses(module, annotation):
-        annotations = annotation if isinstance(annotation, list) else [annotation]
-        types = (v for v in module.__dict__.itervalues() if isinstance(v, type))
-        return ((a,t) for t in types \
-                         for a in Annotations.getAnnotations(t) \
-                            if a.__class__ in annotations)
+    def getAnnotatedClasses(ann_type):
+        return Annotations._registry.find(lambda a,c: isinstance(a, ann_type))
 
 #===========================================================
 
-def ClassAnnotation(t):
-    spec = inspect.getargspec(t.__init__) if t.__init__ != object.__init__ else None
-    only_ctor = spec and (len(spec.args) - 1) != len(spec.defaults or [])
+class ClassAnnotation(object):
+    def __init__(self, *va, **ka):
+        self.args = (va, ka)
     
-    def _apply_(*va, **ka):
-        if not only_ctor and len(va) == 1 and isinstance(va[0], type):
-            Annotations.addAnnotation(va[0], t())
-            return va[0]
-        else:
-            ann = t(*va, **ka)
-            def _attach_(c):
-                Annotations.addAnnotation(c, ann)
-                return c
-            return _attach_
+    def __call__(self, t):
+        self.apply(t, *self.args[0], **self.args[1])
+        Annotations.addAnnotation(t, self)
+        return t
     
-    return _apply_
-
-#===========================================================
+    def apply(self, t):
+        pass

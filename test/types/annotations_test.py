@@ -1,31 +1,28 @@
 from hk2.types import ClassAnnotation, Annotations
 
-import unittest, sys
+import unittest
 
 #===========================================================
 
-class TestAnnotation(object):
-    def __init__(self, data = None):
+class Test(ClassAnnotation):
+    def apply(self, t, data = None):
         self.data = data
 
-class Test2Annotation(object):
-    def __init__(self, clazz):
+class Test2(ClassAnnotation):
+    def apply(self, t, clazz):
         self.clazz = clazz
-
-test = ClassAnnotation(TestAnnotation)
-test2 = ClassAnnotation(Test2Annotation)
 
 #===========================================================
 
-@test
+@Test()
 class Foo(object):
     pass
 
-@test('bar')
+@Test('bar')
 class Bar(object):
     pass
 
-@test2(Bar)
+@Test2(Bar)
 class Bazz(object):
     pass
 
@@ -40,8 +37,7 @@ class AnnotationsTest(unittest.TestCase):
         self.assertEqual(Annotations.getAnnotations(Bar)[0].data, 'bar')
     
     def testGettingClassesByAnnotations(self):
-        module = sys.modules[__name__]
-        ats = list(Annotations.getAnnotatedClasses(module, TestAnnotation))
+        ats = Annotations.getAnnotatedClasses(Test)
         self.assertEqual(len(ats), 2)
         self.assertEqual(ats[0][0].data, 'bar')
 

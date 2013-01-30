@@ -12,20 +12,35 @@ class Bindings(object):
         assert isinstance(what, type)
         assert isinstance(to, type)
         
-        if what in self._bindings:
-            raise Exception("'%s' is already bound to '%s'" % (what, self._bindings[what]))
+        binds = list(self._bindings.get(what, []))
+        if to in binds:
+            raise Exception("'%s' is already bound to '%s'" \
+                            % (internal.className(self._bindings[what]), internal.className(what)))
         
-        if to.__init__ != object.__init__ and \
-           len(inspect.getargspec(to.__init__).args) != 1 and \
-           not hasattr(to, internal.INJECT_ATTR):
-            raise Exception("'%s' has non-trivial ctor so should be decorated with @inject" % (to))
+        self._validateInject(to)
+        binds.append(to)
         
-        self._bindings[what] = to
+        self._bindings[what] = binds
+    
+    def _validateInject(self, clazz):
+        if clazz.__init__ != object.__init__ and \
+           len(inspect.getargspec(clazz.__init__).args) != 1 and \
+           not hasattr(clazz.__init__, internal.INJECT_ATTR):
+            raise Exception("'%s' has non-trivial ctor so should be decorated with @inject" \
+                            % (internal.className(clazz)))
     
     def get(self, what, default = internal.raiseOnMissing):
-        ret = self._bindings.get(what)
-        if not ret:
+        binds = self._bindings.get(what)
+        if not binds:
             if internal.raiseOnMissing == default:
-                raise Exception("'%s' not bound" % (what))
+                raise Exception("'%s' not bound" % (internal.className(what)))
             return default
-        return ret
+        elif len(binds) > 1:
+            raise Exception("Get is ambiguous, '%s' has multiple bindings" \
+                            % (internal.className(what)))
+        return binds[0]
+    
+    def getAll(self, what):
+        return self._bindings.get(what, [])
+
+
