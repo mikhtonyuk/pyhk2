@@ -17,15 +17,27 @@ class Container(object):
         return instances
     
     def _getInstance(self, t, resolving):
-        init = t.__init__
-        inject = getattr(init, internal.INJECT_ATTR) if hasattr(init, internal.INJECT_ATTR) else []
+        inject = self._getInjectParams(t)
         
-        cyclic = set(inject).intersection(resolving)
+        cyclic = set((p.type for p in inject)).intersection(resolving)
         if cyclic:
             self._raiseCyclicDepsError(cyclic, resolving)
         
-        params = [self._getInstance(self._binds.get(i), resolving + [i]) for i in inject]
+        params = []
+        for ip in inject:
+            newResolving = resolving + [ip.type]
+            if not ip.multi:
+                bind = self._binds.get(ip.type)
+                params.append(self._getInstance(bind, newResolving))
+            else:
+                binds = self._binds.getAll(ip.type)
+                params.append([self._getInstance(b, newResolving) for b in binds])
+        
         return t(*params)
+    
+    def _getInjectParams(self, t):
+        init = t.__init__
+        return getattr(init, internal.INJECT_ATTR) if hasattr(init, internal.INJECT_ATTR) else []
     
     def _raiseCyclicDepsError(self, on_what, path):
         swhat = ','.join((internal.className(w) for w in on_what))

@@ -1,5 +1,5 @@
 from hk2.types import interface
-from hk2.injection import inject, Container
+from hk2.injection import inject, allof, Container
 
 import unittest
 
@@ -45,6 +45,15 @@ class ImplBCyclic(B):
     def bar(self):
         return 'cyclobar'
 
+class ImplAMulti(A):
+    
+    @inject(allof(B))
+    def __init__(self, bs):
+        self._bs = bs
+    
+    def foo(self):
+        return ','.join([b.bar() for b in self._bs])
+
 #===========================================================
 
 class InjectionTest(unittest.TestCase):
@@ -71,6 +80,15 @@ class InjectionTest(unittest.TestCase):
         self.assertEqual(len(insts), 2)
         self.assertIsInstance(insts[0], ImplB)
         self.assertIsInstance(insts[1], ImplB2)
+    
+    def testMultiInject(self):
+        c = Container()
+        c.bind(A, ImplAMulti)
+        c.bind(B, ImplB)
+        c.bind(B, ImplB2)
+        a = c.get(A)
+        self.assertIsInstance(a, ImplAMulti)
+        self.assertEqual(a.foo(), 'bar,bar2')
     
     def testRaisesOnNotBound(self):
         c = Container()

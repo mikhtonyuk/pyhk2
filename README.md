@@ -36,8 +36,9 @@ Dependency injection
 
 <pre>
 <code>
-@inject(IBar)
 class Foo(IFoo):
+	
+	@inject(IBar)
 	def __init__(self, bar):
 		self._bar = bar
 
@@ -54,5 +55,30 @@ class Bar(IBar):
 >> f = c.get(IFoo)
 >> f.foo()
 foo bar !
+</code>
+</pre>
+
+Service registry
+--------------------
+
+<pre>
+<code>
+@interface
+@contract
+class IReporter(object):
+	def report(self):
+		"""Reports some data"""
+
+@service
+class MyReporter(IReporter):
+	
+	@inject(ISomeDependency)
+	def __init__(self, dep):
+		...
+
+habitat = Habitat()
+reporters = habitat.getAllByComponent(IReporter)
+for r in reporters:
+	r.report()
 </code>
 </pre>
