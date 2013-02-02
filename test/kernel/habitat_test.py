@@ -2,6 +2,8 @@ from hk2.types import interface
 from hk2.annotations import Contract, Service
 from hk2.injection import inject
 from hk2.kernel import Habitat
+
+import sys
 import unittest
 
 #===========================================================
@@ -45,11 +47,11 @@ class IDepends(object):
 
 @Service()
 class DependsImpl(IDepends):
-    
+
     @inject(ISingle)
     def __init__(self, fooer):
         self._fooer = fooer
-    
+
     def foo(self):
         return 'depends ' + self._fooer.foo()
 
@@ -57,24 +59,22 @@ class DependsImpl(IDepends):
 
 class HabitatTest(unittest.TestCase):
     def testGetByContractSingle(self):
-        h = Habitat()
+        h = Habitat(sys.modules[__name__])
         svs = h.getAllByContract(ISingle)
         self.assertEqual(len(svs), 1)
         self.assertIsInstance(svs[0], SingleImpl)
-    
+
     def testGetByContractMulti(self):
-        h = Habitat()
+        h = Habitat(sys.modules[__name__])
         svs = h.getAllByContract(IMulti)
         self.assertEqual(len(svs), 2)
         self.assertTrue(any([isinstance(s, MultiImpl1) for s in svs]))
         self.assertTrue(any([isinstance(s, MultiImpl2) for s in svs]))
-        self.assertSetEqual(set((s.foo() for s in svs)), set(('foo1', 'foo2')))
-    
+        self.assertSetEqual(set((s.foo() for s in svs)), {'foo1', 'foo2'})
+
     def testGetByContractInjection(self):
-        h = Habitat()
+        h = Habitat(sys.modules[__name__])
         svs = h.getAllByContract(IDepends)
         self.assertEqual(len(svs), 1)
         self.assertIsInstance(svs[0], DependsImpl)
         self.assertEqual(svs[0].foo(), 'depends foo')
-
-
