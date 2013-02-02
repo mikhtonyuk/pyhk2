@@ -7,8 +7,10 @@ class Container(object):
     def __init__(self, bindings = None):
         self._binds = bindings or Bindings()
     
-    def get(self, what):
-        bind = self._binds.get(what)
+    def get(self, what, default = internal.raiseOnMissing):
+        bind = self._binds.get(what, default)
+        if bind == default:
+            return bind
         return self._getInstance(bind, [what])
     
     def getAll(self, what):

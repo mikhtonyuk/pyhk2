@@ -24,7 +24,7 @@ class IPlugin(object):
     """ Base interface for all plug-ins """
     
     def init(self, plugin_manager, shadow):
-        pass
+        """ Initializes the plugin """
 
 #===========================================================
 

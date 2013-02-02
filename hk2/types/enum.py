@@ -68,10 +68,12 @@ def flags(t):
             return c._ts.get(val)
         
         in_values = [ v for v in c.values if v and (val & v) == v ]
-        in_values.sort()
-        if len(in_values) == 0:
+        all_values = reduce(operator.or_, in_values)
+
+        if all_values != val or not in_values:
             return default
-        
+
+        in_values.sort()
         return ' | '.join( ( c._ts.get(v) for v in in_values ) )
     
     def _parse(c, s, default=None):

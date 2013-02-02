@@ -10,7 +10,7 @@ import unittest
 @Contract()
 class ISingle(object):
     def foo(self):
-        pass
+        '''does foo'''
 
 @Service()
 class SingleImpl(ISingle):
@@ -23,7 +23,7 @@ class SingleImpl(ISingle):
 @Contract()
 class IMulti(object):
     def foo(self):
-        pass
+        '''does foo'''
 
 @Service()
 class MultiImpl1(IMulti):
@@ -41,7 +41,7 @@ class MultiImpl2(IMulti):
 @Contract()
 class IDepends(object):
     def foo(self):
-        pass
+        '''does foo'''
 
 @Service()
 class DependsImpl(IDepends):
@@ -68,6 +68,7 @@ class HabitatTest(unittest.TestCase):
         self.assertEqual(len(svs), 2)
         self.assertTrue(any([isinstance(s, MultiImpl1) for s in svs]))
         self.assertTrue(any([isinstance(s, MultiImpl2) for s in svs]))
+        self.assertSetEqual(set((s.foo() for s in svs)), set(('foo1', 'foo2')))
     
     def testGetByContractInjection(self):
         h = Habitat()

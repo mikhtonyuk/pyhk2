@@ -19,10 +19,18 @@ class TestEnum(unittest.TestCase):
     def testToString(self):
         e = DayOfWeek.Thursday
         self.assertEqual('Thursday', DayOfWeek.toString(e))
+
+    def testToStringDefault(self):
+        e = 100500
+        self.assertEqual('none', DayOfWeek.toString(e, 'none'))
     
     def testParse(self):
         e = DayOfWeek.parse('sunday')
         self.assertEqual(e, DayOfWeek.Sunday)
+
+    def testParseDefault(self):
+        e = DayOfWeek.parse('funday', -1)
+        self.assertEqual(e, -1)
     
     def testIterValues(self):
         vals = DayOfWeek.values
@@ -48,6 +56,10 @@ class TestFlagsEnum(unittest.TestCase):
     def testToStringSingle(self):
         c = Caps.toString(Caps.Write)
         self.assertEqual(c, 'Write')
+
+    def testToStringDefault(self):
+        c = Caps.toString(100500, 'Invalid')
+        self.assertEqual(c, 'Invalid')
     
     def testToStringMulti(self):
         c = Caps.toString(Caps.Read | Caps.Write)
@@ -62,6 +74,10 @@ class TestFlagsEnum(unittest.TestCase):
     def testParseSingle(self):
         c = Caps.parse('write')
         self.assertEqual(c, Caps.Write)
+
+    def testParseDefault(self):
+        c = Caps.parse('blah', -1)
+        self.assertEqual(c, -1)
     
     def testParseMulti(self):
         c = Caps.parse('write|read | delete')

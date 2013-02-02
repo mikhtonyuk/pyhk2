@@ -4,7 +4,7 @@ import unittest
 @interface
 class IFoo(object):
     def foo(self):
-        pass
+        '''does foo'''
 
 class Foo(IFoo):
     def foo(self):
