@@ -39,5 +39,6 @@ class AnnotationsTest(unittest.TestCase):
     def testGettingClassesByAnnotations(self):
         ats = Annotations.getAnnotatedClasses(Test)
         self.assertEqual(len(ats), 2)
-        self.assertEqual(ats[0][0].data, 'bar')
+        data = set((a.data for a,c in ats))
+        self.assertSetEqual(data, set((None, 'bar')))
 
