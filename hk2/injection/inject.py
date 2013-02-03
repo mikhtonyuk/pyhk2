@@ -16,6 +16,10 @@ class inject_param(object):
         else:
             raise Exception("Invalid parameter '%s' to @inject, only types and allof are allowed" % (v))
 
+    def __str__(self):
+        st = internal.className(self.type)
+        return "inject_param: %s" % (st if not self.multi else "(%s)*" % (st))
+
 #===========================================================
 
 class inject(object):
@@ -37,6 +41,10 @@ class inject(object):
         if len(pargs) != len(self._inject):
             raise Exception("Invalid injection params, injects %s but constructs with %s"
                             % (self._inject, pargs))
+
+    @staticmethod
+    def getParams(x):
+        return getattr(x, internal.INJECT_ATTR) if hasattr(x, internal.INJECT_ATTR) else []
 
 #===========================================================
 

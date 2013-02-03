@@ -1,7 +1,75 @@
 from bindings import Bindings
+from exceptions import InjectionError, DeepInjectionError
 from internal import internal
+from inject import inject_param, allof
+from injectors import InjectorFactory
 
-import inspect
+#===========================================================
+
+class InjectionContext(object):
+    def __init__(self, bindings, clazz, resolving, parent=None):
+        """:type bindings: Bindings"""
+        self.binds = bindings
+        self.clazz = clazz
+        self.resolving = resolving
+        self.parent = parent
+
+        self.checkCyclic()
+
+        self.activator = InjectorFactory.getInitInjector(clazz)
+        self.injectors = InjectorFactory.getMethodInjectors(clazz)
+
+        self.activator_deps = self.collectDependencies(self.activator)
+        self.other_deps = [self.collectDependencies(inj) for inj in self.injectors]
+
+    def activate(self):
+        activator_deps = self.activateDependencies(self.activator_deps)
+        inst = self.activator.inject(None, activator_deps)
+        self.inject(inst)
+        return inst
+
+    def inject(self, inst):
+        other_deps = [self.activateDependencies(deps) for deps in self.other_deps]
+        for inj, deps in zip(self.injectors, other_deps):
+            inj.inject(inst, deps)
+
+    def collectDependencies(self, injector):
+        ips = injector.getDependencies()
+
+        deps = []
+        for ip in ips:
+            try:
+                if not ip.multi:
+                    bound = self.binds.get(ip.type)
+                    ctx = InjectionContext(self.binds, bound, ip, self)
+                    deps.append((ip, ctx))
+                else:
+                    bound = self.binds.getAll(ip.type)
+                    ctxz = [InjectionContext(self.binds, b, ip, self) for b in bound]
+                    deps.append((ip, ctxz))
+            except DeepInjectionError:
+                raise
+            except InjectionError, iex:
+                raise DeepInjectionError(iex.message, self, ip)
+
+        return deps
+
+    def activateDependencies(self, deps):
+        ret = []
+        for ip, dep in deps:
+            if not ip.multi:
+                ret.append(dep.activate())
+            else:
+                ret.append([ctx.activate() for ctx in dep])
+        return ret
+
+    def checkCyclic(self):
+        ctx = self.parent
+        while ctx:
+            if self.resolving.type == ctx.resolving.type:
+                raise DeepInjectionError("Cyclic dependency on '%s'" % (internal.className(self.resolving.type)),
+                                         self)
+            ctx = ctx.parent
 
 #===========================================================
 
@@ -13,49 +81,23 @@ class Container(object):
         return self._binds.bind(what, to)
 
     def get(self, what, default=internal.raiseOnMissing):
-        bind = self._binds.get(what, default)
-        if bind == default:
-            return bind
-        return self._getInstance(bind, [what])
+        try:
+            ip = inject_param(what)
+            bound = self._binds.get(what)
+            ctx = InjectionContext(self._binds, bound, ip)
+            return ctx.activate()
+        except InjectionError:
+            if default == internal.raiseOnMissing:
+                raise
+        return default
 
     def getAll(self, what):
-        binds = self._binds.getAll(what)
-        instances = [self._getInstance(t, [what]) for t in binds]
-        return instances
+        ip = inject_param(allof(what))
+        bound = self._binds.getAll(what)
+        ctxz = [InjectionContext(self._binds, b, ip) for b in bound]
+        return [ctx.activate() for ctx in ctxz]
 
     def inject(self, into):
-        members = (m for n, m in inspect.getmembers(into))
-        methods = (m for m in members if inspect.ismethod(m) and m.__name__ != '__init__')
-        setters = (m for m in methods if hasattr(m, internal.INJECT_ATTR))
-        for s in setters:
-            inject = self._getInjectParams(s)
-            params = [self._resolve(ip, []) for ip in inject]
-            s(*params)
-
-    def _getInstance(self, t, resolving):
-        inject = self._getInjectParams(t.__init__)
-
-        cyclic = set((p.type for p in inject)).intersection(resolving)
-        if cyclic:
-            self._raiseCyclicDepsError(cyclic, resolving)
-
-        params = [self._resolve(ip, resolving) for ip in inject]
-        return t(*params)
-
-    def _resolve(self, inject_param, resolving):
-        newResolving = resolving + [inject_param.type]
-        if not inject_param.multi:
-            bind = self._binds.get(inject_param.type)
-            return self._getInstance(bind, newResolving)
-        else:
-            binds = self._binds.getAll(inject_param.type)
-            return [self._getInstance(b, newResolving) for b in binds]
-
-    def _getInjectParams(self, x):
-        return getattr(x, internal.INJECT_ATTR) if hasattr(x, internal.INJECT_ATTR) else []
-
-    def _raiseCyclicDepsError(self, on_what, path):
-        swhat = ','.join((internal.className(w) for w in on_what))
-        spath = ['%d. %s' % (i + 1, internal.className(c)) for i, c in enumerate(path)]
-        spath = '\n'.join(spath)
-        raise Exception("Cyclic dependency detected on '%s', injection path:\n%s" % (swhat, spath))
+        ip = inject_param(into.__class__)
+        ctx = InjectionContext(self._binds, into.__class__, ip)
+        ctx.inject(into)

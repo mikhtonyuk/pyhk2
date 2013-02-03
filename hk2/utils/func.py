@@ -8,6 +8,11 @@ def get_el(i):
         return x[i]
     return _getter_
 
+def get_attr(n):
+    def _getter_(x):
+        return getattr(x, n)
+    return _getter_
+
 #===========================================================
 # Iteration
 #===========================================================

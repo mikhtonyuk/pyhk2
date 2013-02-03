@@ -1,141 +1,177 @@
 from hk2.types import interface
-from hk2.injection import inject, allof, Container
+from hk2.injection import inject, allof, Container, InjectionError
 
 import unittest
 
 #===========================================================
 
 @interface
-class A(object):
-    def foo(self):
-        """does foo"""
+class L1(object):
+    def do1(self):
+        """"""
 
 @interface
-class B(object):
-    def bar(self):
-        """does bar"""
+class L2(object):
+    def do2(self):
+        """"""
 
-class ImplA(A):
-    
-    @inject(B)
-    def __init__(self, b):
-        self.b = b
-    
-    def foo(self):
-        return 'foo ' + self.b.bar()
-
-class ImplB(B):
-    def bar(self):
-        return 'bar'
-
-class ImplB2(B):
-    def bar(self):
-        return 'bar2'
-
-class ImplBNoInjectDecl(B):
-    def __init__(self, c):
-        """will not execute"""
-
-class ImplBCyclic(B):
-    
-    @inject(A)
-    def __init__(self, a):
-        """will not execute"""
-
-class ImplAMulti(A):
-    
-    @inject(allof(B))
-    def __init__(self, bs):
-        self._bs = bs
-    
-    def foo(self):
-        return ','.join([b.bar() for b in self._bs])
+@interface
+class L3(object):
+    def do3(self):
+        """"""
 
 #===========================================================
 
-class ImplASetterInject(A):
-    def __init__(self):
-        self._fooer = None
+class L1_1(L1):
+    def do1(self):
+        return 'l1_1'
 
-    @inject(A)
-    def setFooer(self, fooer):
-        self._fooer = fooer
+class L1_2(L1):
+    def do1(self):
+        return 'l1_2'
 
-    def foo(self):
-        return 'setter ' + self._fooer.foo()
+class L2_1(L2):
+
+    @inject(L1)
+    def __init__(self, l1):
+        self.l1 = l1
+
+    def do2(self):
+        return 'l2_1 ' + self.l1.do1()
+
+class L2_Multi(L2):
+
+    @inject(allof(L1))
+    def __init__(self, l1s):
+        self.l1s = l1s
+
+    def do2(self):
+        ll = ['l2_multi']
+        ll.extend([l.do1() for l in self.l1s])
+        return ' '.join(ll)
+
+class L3_1(L3):
+    @inject(L2)
+    def __init__(self, l2):
+        self.l2 = l2
+
+    def do3(self):
+        return 'l3_1 ' + self.l2.do2()
+
+class L3_Setter(L3):
+    @inject(allof(L1))
+    def setL1s(self, l1s):
+        self.l1s = l1s
+
+    @inject(L2)
+    def setL2(self, l2):
+        self.l2 = l2
+
+    def do3(self):
+        ll = ['l3_setter']
+        ll.extend([l.do1() for l in self.l1s])
+        ll.append(self.l2.do2())
+        return ' '.join(ll)
+
+#===========================================================
+
+class ENoInject(L1):
+    def __init__(self, blah):
+        """"""
+
+class EL1Cyclic(L1):
+    @inject(L3)
+    def __init__(self, l3):
+        """"""
 
 #===========================================================
 
 class InjectionTest(unittest.TestCase):
-    
+
     def testBasicGet(self):
         c = Container()
-        c.bind(B, ImplB)
-        b = c.get(B)
-        self.assertIsInstance(b, ImplB)
-    
+        c.bind(L1, L1_1)
+        l = c.get(L1)
+        self.assertIsInstance(l, L1_1)
+
     def testInjectionGet(self):
         c = Container()
-        c.bind(A, ImplA)
-        c.bind(B, ImplB)
-        a = c.get(A)
-        self.assertIsInstance(a, ImplA)
-        self.assertEqual(a.foo(), 'foo bar')
-    
+        c.bind(L1, L1_1)
+        c.bind(L2, L2_1)
+        l = c.get(L2)
+        self.assertIsInstance(l, L2)
+        self.assertEqual('l2_1 l1_1', l.do2())
+
     def testMultiBind(self):
         c = Container()
-        c.bind(B, ImplB)
-        c.bind(B, ImplB2)
-        insts = c.getAll(B)
-        self.assertEqual(len(insts), 2)
-        self.assertIsInstance(insts[0], ImplB)
-        self.assertIsInstance(insts[1], ImplB2)
-    
+        c.bind(L1, L1_1)
+        c.bind(L1, L1_2)
+        ls = c.getAll(L1)
+        self.assertEqual(len(ls), 2)
+        self.assertIsInstance(ls[0], L1_1)
+        self.assertIsInstance(ls[1], L1_2)
+
     def testMultiInject(self):
         c = Container()
-        c.bind(A, ImplAMulti)
-        c.bind(B, ImplB)
-        c.bind(B, ImplB2)
-        a = c.get(A)
-        self.assertIsInstance(a, ImplAMulti)
-        self.assertEqual(a.foo(), 'bar,bar2')
+        c.bind(L1, L1_1)
+        c.bind(L1, L1_2)
+        c.bind(L2, L2_Multi)
+        l = c.get(L2)
+        self.assertIsInstance(l, L2_Multi)
+        self.assertEqual('l2_multi l1_1 l1_2', l.do2())
 
     def testSetterInject(self):
-        s = ImplASetterInject()
         c = Container()
-        c.bind(A, ImplA)
-        c.bind(B, ImplB)
-        c.inject(s)
-        self.assertEqual(s.foo(), 'setter foo bar')
+        c.bind(L1, L1_1)
+        c.bind(L1, L1_2)
+        c.bind(L2, L2_Multi)
+        c.bind(L3, L3_Setter)
+        l = c.get(L3)
+        self.assertEqual('l3_setter l1_1 l1_2 l2_multi l1_1 l1_2', l.do3())
+
+    def testSetterInjectManual(self):
+        c = Container()
+        c.bind(L1, L1_1)
+        c.bind(L1, L1_2)
+        c.bind(L2, L2_Multi)
+        l = L3_Setter()
+        c.inject(l)
+        self.assertEqual('l3_setter l1_1 l1_2 l2_multi l1_1 l1_2', l.do3())
 
     def testDefaultOnNotBound(self):
         c = Container()
-        c.bind(B, ImplB)
-        a = c.get(A, None)
-        self.assertIsNone(a)
+        c.bind(L1, L1_1)
+        l = c.get(L2, None)
+        self.assertIsNone(l)
 
     def testRaisesOnNotBound(self):
         c = Container()
-        c.bind(B, ImplB)
-        self.assertRaises(Exception, lambda:c.get(A))
-    
+        c.bind(L1, L1_1)
+        self.assertRaises(InjectionError, lambda: c.get(L2))
+
+    def testRaisesOnUnresolvedDependency(self):
+        c = Container()
+        c.bind(L2, L2_1)
+        self.assertRaises(InjectionError, lambda: c.get(L2))
+
     def testRaisesOnRepeatedBinding(self):
         c = Container()
-        c.bind(A, ImplA)
-        self.assertRaises(Exception, lambda:c.bind(A,ImplA))
-    
+        c.bind(L1, L1_1)
+        self.assertRaises(InjectionError, lambda: c.bind(L1, L1_1))
+
     def testRaisesOnAmbiguity(self):
         c = Container()
-        c.bind(B, ImplB)
-        c.bind(B, ImplB2)
-        self.assertRaises(Exception, lambda:c.get(B))
-    
+        c.bind(L1, L1_1)
+        c.bind(L1, L1_2)
+        self.assertRaises(InjectionError, lambda: c.get(L1))
+
     def testRaisesOnCtorWithoutInjectParams(self):
         c = Container()
-        self.assertRaises(Exception, lambda:c.bind(B, ImplBNoInjectDecl))
-    
+        self.assertRaises(InjectionError, lambda: c.bind(L1, ENoInject))
+
     def testRaisesOnCyclicDependencies(self):
         c = Container()
-        c.bind(A, ImplA)
-        c.bind(B, ImplBCyclic)
-        self.assertRaises(Exception, lambda:c.get(A))
+        c.bind(L1, EL1Cyclic)
+        c.bind(L2, L2_1)
+        c.bind(L3, L3_1)
+        self.assertRaises(InjectionError, lambda: c.get(L3))
