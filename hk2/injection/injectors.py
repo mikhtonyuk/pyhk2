@@ -46,6 +46,21 @@ class MethodInjector(Injector):
 
 #===========================================================
 
+class PropertyInjector(Injector):
+    def __init__(self, clazz, name, prop, ips):
+        self.clazz = clazz
+        self.name = name
+        self.prop = prop
+        self.ips = ips
+
+    def getDependencies(self):
+        return self.ips
+
+    def inject(self, inst, dependencies):
+        setattr(inst, self.name, *dependencies)
+
+#===========================================================
+
 class InjectorFactory(object):
 
     @staticmethod
@@ -54,8 +69,21 @@ class InjectorFactory(object):
         return InitInjector(clazz, ips)
 
     @staticmethod
+    def getInstanceInjectors(clazz):
+        ret = []
+        ret.extend(InjectorFactory.getMethodInjectors(clazz))
+        ret.extend(InjectorFactory.getPropertyInjectors(clazz))
+        return ret
+
+    @staticmethod
     def getMethodInjectors(clazz):
-        members = (m for n, m in inspect.getmembers(clazz))
-        methods = (m for m in members if inspect.ismethod(m) and m.__name__ != '__init__')
+        members = (m for n, m in inspect.getmembers(clazz, inspect.ismethod))
+        methods = (m for m in members if m.__name__ != '__init__')
         setters = (m for m in methods if hasattr(m, internal.INJECT_ATTR))
         return [MethodInjector(clazz, m, inject.getParams(m)) for m in setters]
+
+    @staticmethod
+    def getPropertyInjectors(clazz):
+        props = [(n,p) for n, p in inspect.getmembers(clazz) if isinstance(p, property)]
+        setters = ((n, p) for n, p in props if p.fset and hasattr(p.fset, internal.INJECT_ATTR))
+        return [PropertyInjector(clazz, n, p, inject.getParams(p.fset)) for n, p in setters]

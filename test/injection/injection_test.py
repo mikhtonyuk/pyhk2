@@ -73,6 +73,32 @@ class L3_Setter(L3):
         ll.append(self.l2.do2())
         return ' '.join(ll)
 
+class L3_Property(L3):
+
+    @property
+    def l1s(self):
+        return self._l1s
+
+    @l1s.setter
+    @inject(allof(L1))
+    def l1s(self, l1s):
+        self._l1s = l1s
+
+    @property
+    def l2(self):
+        return self._l2
+
+    @l2.setter
+    @inject(L2)
+    def l2(self, l2):
+        self._l2 = l2
+
+    def do3(self):
+        ll = ['l3_property']
+        ll.extend([l.do1() for l in self.l1s])
+        ll.append(self.l2.do2())
+        return ' '.join(ll)
+
 #===========================================================
 
 class ENoInject(L1):
@@ -137,6 +163,15 @@ class InjectionTest(unittest.TestCase):
         l = L3_Setter()
         c.inject(l)
         self.assertEqual('l3_setter l1_1 l1_2 l2_multi l1_1 l1_2', l.do3())
+
+    def testPropertyInject(self):
+        c = Container()
+        c.bind(L1, L1_1)
+        c.bind(L1, L1_2)
+        c.bind(L2, L2_Multi)
+        l = L3_Property()
+        c.inject(l)
+        self.assertEqual('l3_property l1_1 l1_2 l2_multi l1_1 l1_2', l.do3())
 
     def testDefaultOnNotBound(self):
         c = Container()
