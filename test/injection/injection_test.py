@@ -8,12 +8,12 @@ import unittest
 @interface
 class A(object):
     def foo(self):
-        '''does foo'''
+        """does foo"""
 
 @interface
 class B(object):
     def bar(self):
-        '''does bar'''
+        """does bar"""
 
 class ImplA(A):
     
@@ -34,13 +34,13 @@ class ImplB2(B):
 
 class ImplBNoInjectDecl(B):
     def __init__(self, c):
-        '''will not execute'''
+        """will not execute"""
 
 class ImplBCyclic(B):
     
     @inject(A)
     def __init__(self, a):
-        '''will not execute'''
+        """will not execute"""
 
 class ImplAMulti(A):
     
@@ -50,6 +50,19 @@ class ImplAMulti(A):
     
     def foo(self):
         return ','.join([b.bar() for b in self._bs])
+
+#===========================================================
+
+class ImplASetterInject(A):
+    def __init__(self):
+        self._fooer = None
+
+    @inject(A)
+    def setFooer(self, fooer):
+        self._fooer = fooer
+
+    def foo(self):
+        return 'setter ' + self._fooer.foo()
 
 #===========================================================
 
@@ -87,6 +100,14 @@ class InjectionTest(unittest.TestCase):
         self.assertIsInstance(a, ImplAMulti)
         self.assertEqual(a.foo(), 'bar,bar2')
 
+    def testSetterInject(self):
+        s = ImplASetterInject()
+        c = Container()
+        c.bind(A, ImplA)
+        c.bind(B, ImplB)
+        c.inject(s)
+        self.assertEqual(s.foo(), 'setter foo bar')
+
     def testDefaultOnNotBound(self):
         c = Container()
         c.bind(B, ImplB)
@@ -118,8 +139,3 @@ class InjectionTest(unittest.TestCase):
         c.bind(A, ImplA)
         c.bind(B, ImplBCyclic)
         self.assertRaises(Exception, lambda:c.get(A))
-
-
-
-
-

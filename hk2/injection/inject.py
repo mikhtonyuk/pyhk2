@@ -23,18 +23,20 @@ class inject(object):
         self._inject = [inject_param(v) for v in vargs]
 
     def __call__(self, m):
-        if not isinstance(m, types.FunctionType) or m.__name__ != '__init__':
-            raise Exception("@inject can only be applied to __init__ methods")
+        if not isinstance(m, types.FunctionType):
+            raise Exception("@inject can only be applied to __init__ and setter methods")
 
+        self._validateFuncInject(m)
+        setattr(m, internal.INJECT_ATTR, self._inject)
+        return m
+
+    def _validateFuncInject(self, m):
         argspec = inspect.getargspec(m)
         pargs = argspec.args[1:]
 
         if len(pargs) != len(self._inject):
             raise Exception("Invalid injection params, injects %s but constructs with %s"
                             % (self._inject, pargs))
-
-        setattr(m, internal.INJECT_ATTR, self._inject)
-        return m
 
 #===========================================================
 
