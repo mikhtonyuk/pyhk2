@@ -1,40 +1,46 @@
-from hk2.kernel.plugin_loader import FilePluginLoader
+from hk2.kernel.file_plugin_loader import FilePluginLoader
 
 import os
-import sys
+import pickle
 import unittest
 
 #===========================================================
 
-MODULE_PATH = sys.modules[__name__].__file__
-CUR_DIR = os.path.dirname(os.path.relpath(MODULE_PATH))
-
-def cd(dir):
-    return os.path.join(CUR_DIR, dir)
+PROJ_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 
 #===========================================================
 
 class PluginLoaderTest(unittest.TestCase):
-    def testGetPlugins(self):
-        plugin_dirs = map(cd, ['contracts', 'test_plugin_1'])
+    def setUp(self):
+        os.chdir(os.path.dirname(__file__))
 
-        pl = FilePluginLoader(plugin_dirs)
+    def testGetPlugins(self):
+        pl = FilePluginLoader()
+        pl.addAllInDir('ex1_simple_binding/serializers')
+
         plugins = set(pl.getPlugins())
-        self.assertSetEqual(plugins, set(plugin_dirs))
+        expected = ['ex1_simple_binding/serializers/str_serializer', 'ex1_simple_binding/serializers/pickle_serializer']
+        self.assertSetEqual(plugins, set(expected))
 
     def testScanPlugins(self):
-        plugin_dirs = map(cd, ['contracts', 'test_plugin_1'])
+        pl = FilePluginLoader()
+        pl.setImportRoot(PROJ_DIR)
+        pl.addAllInDir('ex1_simple_binding/serializers')
+        pl.addModuleFile('ex1_simple_binding/interfaces.py')
 
-        pl = FilePluginLoader(plugin_dirs)
         m, c, s = pl.scanPlugins()
-        self.assertEqual(len(m), 2)
+        self.assertEqual(len(m), 3)
         self.assertEqual(len(c), 1)
-        self.assertEqual(len(s), 1)
+        self.assertEqual(len(s), 2)
 
-        import contracts.serializer
-        import test_plugin_1.str_serializer
-        self.assertSetEqual(set(m), {contracts.serializer, test_plugin_1.str_serializer})
-        self.assertEqual(c[0], contracts.serializer.ISerializer)
-        self.assertEqual(s[0], test_plugin_1.str_serializer.StrSerializer)
+        import test.kernel.ex1_simple_binding.interfaces as ifc
+        import test.kernel.ex1_simple_binding.serializers.str_serializer.str_serializer as sstr
+        import test.kernel.ex1_simple_binding.serializers.pickle_serializer.pickle_serializer as spik
 
-        self.assertEqual(s[0]().serialize(10), '10')
+        self.assertSetEqual(set(m), {ifc, sstr, spik})
+
+        self.assertEqual(c[0], ifc.ISerializer)
+        self.assertSetEqual(set(s), {sstr.StrSerializer, spik.PickleSerializer})
+
+        ser = map(lambda x: x().serialize(10), s)
+        self.assertSetEqual(set(ser), {'10', pickle.dumps(10)})

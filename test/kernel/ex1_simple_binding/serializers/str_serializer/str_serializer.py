@@ -1,5 +1,6 @@
 from hk2.annotations import Service
-from test.kernel.contracts.serializer import ISerializer
+
+from test.kernel.ex1_simple_binding.interfaces import ISerializer
 
 #===========================================================
 

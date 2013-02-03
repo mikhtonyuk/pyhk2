@@ -3,7 +3,6 @@ from hk2.annotations import Contract, Service
 from hk2.injection import inject
 from hk2.kernel import Habitat
 
-import sys
 import unittest
 
 #===========================================================
@@ -59,13 +58,13 @@ class DependsImpl(IDepends):
 
 class HabitatTest(unittest.TestCase):
     def testGetByContractSingle(self):
-        h = Habitat(sys.modules[__name__])
+        h = Habitat()
         svs = h.getAllByContract(ISingle)
         self.assertEqual(len(svs), 1)
         self.assertIsInstance(svs[0], SingleImpl)
 
     def testGetByContractMulti(self):
-        h = Habitat(sys.modules[__name__])
+        h = Habitat()
         svs = h.getAllByContract(IMulti)
         self.assertEqual(len(svs), 2)
         self.assertTrue(any([isinstance(s, MultiImpl1) for s in svs]))
@@ -73,7 +72,7 @@ class HabitatTest(unittest.TestCase):
         self.assertSetEqual(set((s.foo() for s in svs)), {'foo1', 'foo2'})
 
     def testGetByContractInjection(self):
-        h = Habitat(sys.modules[__name__])
+        h = Habitat()
         svs = h.getAllByContract(IDepends)
         self.assertEqual(len(svs), 1)
         self.assertIsInstance(svs[0], DependsImpl)

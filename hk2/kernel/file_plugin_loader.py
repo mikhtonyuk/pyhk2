@@ -1,6 +1,7 @@
-from hk2.types import interface
-
+from interfaces import IPluginLoader
 from module_scanner import ModuleScanner
+
+import hk2.utils.func as fn
 
 import os
 import logging
@@ -12,21 +13,30 @@ PLUGIN_FILE = '__plugin__.py'
 
 #===========================================================
 
-@interface
-class IPluginLoader(object):
-    def getPlugins(self):
-        """Returns list of plugin names"""
-
-    def scanPlugins(self, plugins=None):
-        """Scans all or specified plugins, returns lists of (contracts, services)"""
-
-#===========================================================
-
 class FilePluginLoader(IPluginLoader):
     def __init__(self, scan_dirs=None):
-        self._scan_dirs = scan_dirs or ['.']
+        self._import_root = os.path.abspath('.')
+        self._scan_dirs = scan_dirs or []
+        self._scan_files = []
+
         self._plugin_dirs = []
         self._moduleScanner = ModuleScanner()
+
+    def addDir(self, dir):
+        if os.path.isdir(dir):
+            self._scan_dirs.append(dir)
+
+    def addAllInDir(self, dir):
+        dirs = [dir] if isinstance(dir, basestring) else dir
+        subdirs = [os.path.join(d, ls) for d in dirs for ls in os.listdir(d)]
+        fn.foreach(self.addDir, subdirs)
+
+    def addModuleFile(self, path):
+        if self._isModuleCandidate(path):
+            self._scan_files.append(path)
+
+    def setImportRoot(self, path):
+        self._import_root = os.path.abspath(path)
 
     def getPlugins(self):
         if len(self._plugin_dirs) == 0:
@@ -34,21 +44,28 @@ class FilePluginLoader(IPluginLoader):
 
         return self._plugin_dirs
 
-    def scanPlugins(self, plugins=None):
+    def scanPlugins(self):
         modules = []
         contracts = []
         services = []
 
-        plugins = plugins or self.getPlugins()
-
-        for p in plugins:
+        for p in self.getPlugins():
             for m in self._getPluginModules(p):
                 module = self._loadModule(m)
                 if module:
                     cts, svc = self._moduleScanner.scan(module)
-                    modules.append(module)
-                    contracts.extend(cts)
-                    services.extend(svc)
+                    if cts or svc:
+                        modules.append(module)
+                        contracts.extend(cts)
+                        services.extend(svc)
+
+        for m in self._scan_files:
+            module = self._loadModule(m)
+            if module:
+                cts, svc = self._moduleScanner.scan(module)
+                modules.append(module)
+                contracts.extend(cts)
+                services.extend(svc)
 
         return modules, contracts, services
 
@@ -79,7 +96,9 @@ class FilePluginLoader(IPluginLoader):
             return None
 
     def _pathToImport(self, path):
-        return os.path.splitext(path)[0].replace(os.sep, '.')
+        abs = os.path.abspath(path)
+        rel = os.path.relpath(abs, self._import_root)
+        return os.path.splitext(rel)[0].replace(os.sep, '.')
 
     def _navigateToModule(self, import_path, root):
         navi = import_path.split('.')
