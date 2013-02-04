@@ -16,10 +16,10 @@ class PluginLoaderTest(unittest.TestCase):
 
     def testGetPlugins(self):
         pl = FilePluginLoader()
-        pl.addAllInDir('ex1_simple_binding/serializers')
+        pl.addAllInDir(os.path.normpath('ex1_simple_binding/serializers'))
 
         plugins = set(pl.getPlugins())
-        expected = ['ex1_simple_binding/serializers/str_serializer', 'ex1_simple_binding/serializers/pickle_serializer']
+        expected = map(os.path.normpath, ['ex1_simple_binding/serializers/str_serializer', 'ex1_simple_binding/serializers/pickle_serializer'])
         self.assertSetEqual(plugins, set(expected))
 
     def testScanPlugins(self):
