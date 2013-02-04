@@ -41,6 +41,3 @@ class PluginLoaderTest(unittest.TestCase):
 
         self.assertEqual(c[0], ifc.ISerializer)
         self.assertSetEqual(set(s), {sstr.StrSerializer, spik.PickleSerializer})
-
-        ser = map(lambda x: x().serialize(10), s)
-        self.assertSetEqual(set(ser), {'10', pickle.dumps(10)})
