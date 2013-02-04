@@ -1,4 +1,4 @@
-from hk2.kernel.file_plugin_loader import FilePluginLoader
+from hk2.kernel import FilePluginLoader
 
 import os
 import pickle

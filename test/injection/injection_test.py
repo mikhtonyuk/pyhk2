@@ -173,6 +173,13 @@ class InjectionTest(unittest.TestCase):
         c.inject(l)
         self.assertEqual('l3_property l1_1 l1_2 l2_multi l1_1 l1_2', l.do3())
 
+    def testInstanceBinding(self):
+        c = Container()
+        c.bind(L1, L1_1())
+        c.bind(L2, L2_1)
+        l = c.get(L2)
+        self.assertEqual('l2_1 l1_1', l.do2())
+
     def testDefaultOnNotBound(self):
         c = Container()
         c.bind(L1, L1_1)
@@ -188,11 +195,6 @@ class InjectionTest(unittest.TestCase):
         c = Container()
         c.bind(L2, L2_1)
         self.assertRaises(InjectionError, lambda: c.get(L2))
-
-    def testRaisesOnRepeatedBinding(self):
-        c = Container()
-        c.bind(L1, L1_1)
-        self.assertRaises(InjectionError, lambda: c.bind(L1, L1_1))
 
     def testRaisesOnAmbiguity(self):
         c = Container()

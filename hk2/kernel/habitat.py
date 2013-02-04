@@ -1,6 +1,7 @@
-from hk2.injection import Container
+from interfaces import IStartup
 
-from sysmod_plugin_loader import SysmodPluginLoader
+from hk2.injection import Container
+from plugin_loaders.sysmod_plugin_loader import SysmodPluginLoader
 
 #===========================================================
 
@@ -19,9 +20,13 @@ class Habitat(object):
         self._regInIoC()
 
     def _scan(self):
-        m, c, s = self._loader.scanPlugins()
+        _m, c, s = self._loader.scanPlugins()
         self._contracts = set(c)
         self._services = set(s)
+
+        # Predefined
+        self._contracts.add(IStartup)
+
         self._servicesToContracts = {}
         for s in self._services:
             cts = self._getServiceContracts(s, self._contracts)
@@ -30,6 +35,8 @@ class Habitat(object):
             self._servicesToContracts[s] = cts
 
     def _regInIoC(self):
+        self._ioc.bind(Habitat, self)
+
         for s, cts in self._servicesToContracts.iteritems():
             for c in cts:
                 self._ioc.bind(c, s)
@@ -39,3 +46,13 @@ class Habitat(object):
 
     def getAllByContract(self, contract):
         return self._ioc.getAll(contract)
+
+    def getAllContracts(self):
+        return self._contracts
+
+    def getServicesByContract(self, contract):
+        ret = []
+        for s, c in self._servicesToContracts.iteritems():
+            if contract in c:
+                ret.append(s)
+        return ret

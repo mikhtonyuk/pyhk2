@@ -17,17 +17,17 @@ class DeepInjectionError(InjectionError):
         path = self.getPathElems(ctx, while_resolving)
 
         ret = []
-        for i, (ip, clazz) in enumerate(path):
+        for i, (ip, binding) in enumerate(path):
             ct = internal.className(ip.type)
             mult = '*' if ip.multi else ''
-            resolv = ' as ' + internal.className(clazz) if clazz else ''
+            resolv = " as '%s'" % (binding) if binding else ''
             ret.append("%d. Resolving %s%s%s" % (i + 1, ct, mult, resolv))
         return '\n'.join(ret)
 
     def getPathElems(self, ctx, while_resolving):
         resolve = []
         while ctx:
-            resolve.append((ctx.resolving, ctx.clazz))
+            resolve.append((ctx.resolving, ctx.binding))
             ctx = ctx.parent
         resolve = list(reversed(resolve))
         if while_resolving:

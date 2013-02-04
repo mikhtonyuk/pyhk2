@@ -1,4 +1,5 @@
 from hk2.types import interface
+from hk2.annotations import Contract
 
 #===========================================================
 
@@ -18,5 +19,13 @@ class IPluginLoader(object):
     def scanPlugins(self):
         """Scans plugins for services and contracts
         :returns: tuple of lists (modules, contracts, services)"""
+
+#===========================================================
+
+@Contract()
+@interface
+class IStartup(object):
+    def start(self):
+        """Runs the startup service"""
 
 #===========================================================

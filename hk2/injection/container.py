@@ -1,4 +1,4 @@
-from bindings import Bindings
+from bindings import Bindings, InstanceBinding
 from injection_context import InjectionContext
 from exceptions import InjectionError
 from internal import internal
@@ -32,5 +32,5 @@ class Container(object):
 
     def inject(self, into):
         ip = inject_param(into.__class__)
-        ctx = InjectionContext(self._binds, into.__class__, ip)
+        ctx = InjectionContext(self._binds, InstanceBinding(into), ip)
         ctx.inject(into)

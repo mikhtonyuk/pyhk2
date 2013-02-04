@@ -5,17 +5,17 @@ from exceptions import InjectionError, DeepInjectionError
 #===========================================================
 
 class InjectionContext(object):
-    def __init__(self, bindings, clazz, resolving, parent=None):
+    def __init__(self, bindings, binding, resolving, parent=None):
         """:type bindings: Bindings"""
         self.binds = bindings
-        self.clazz = clazz
+        self.binding = binding
         self.resolving = resolving
         self.parent = parent
 
         self.checkCyclic()
 
-        self.activator = InjectorFactory.getInitInjector(clazz)
-        self.injectors = InjectorFactory.getInstanceInjectors(clazz)
+        self.activator = InjectorFactory.getInitInjector(binding)
+        self.injectors = InjectorFactory.getInstanceInjectors(binding)
 
         self.activator_deps = self.collectDependencies(self.activator)
         self.other_deps = [self.collectDependencies(inj) for inj in self.injectors]

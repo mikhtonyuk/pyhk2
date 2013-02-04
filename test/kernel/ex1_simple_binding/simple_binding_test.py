@@ -1,5 +1,4 @@
-from hk2.kernel.file_plugin_loader import FilePluginLoader
-from hk2.kernel import Habitat
+from hk2.kernel import Habitat, FilePluginLoader
 
 from test.kernel.ex1_simple_binding.interfaces import ISerializer
 
