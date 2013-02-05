@@ -3,4 +3,5 @@ from hk2.types.annotations import ClassAnnotation
 #===========================================================
 
 class Service(ClassAnnotation):
-    pass
+    def apply(self, t, scope=None):
+        self.scope = scope

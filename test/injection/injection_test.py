@@ -1,5 +1,5 @@
 from hk2.types import interface
-from hk2.injection import inject, allof, Container, InjectionError
+from hk2.injection import inject, allof, Container, InjectionError, SingletonScope
 
 import unittest
 
@@ -179,6 +179,13 @@ class InjectionTest(unittest.TestCase):
         c.bind(L2, L2_1)
         l = c.get(L2)
         self.assertEqual('l2_1 l1_1', l.do2())
+
+    def testScopeSingleton(self):
+        c = Container()
+        c.bind(L1, L1_1, scope=SingletonScope)
+        l1 = c.get(L1)
+        l2 = c.get(L1)
+        self.assertEqual(l1, l2)
 
     def testDefaultOnNotBound(self):
         c = Container()

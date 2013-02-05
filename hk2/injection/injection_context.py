@@ -2,11 +2,16 @@ from internal import internal
 from injectors import InjectorFactory
 from exceptions import InjectionError, DeepInjectionError
 
+import logging
+log = logging.getLogger(__name__)
+
 #===========================================================
 
 class InjectionContext(object):
     def __init__(self, bindings, binding, resolving, parent=None):
         """:type bindings: Bindings"""
+        log.debug("Resolving dependencies for '%s'", binding)
+
         self.binds = bindings
         self.binding = binding
         self.resolving = resolving
@@ -14,16 +19,20 @@ class InjectionContext(object):
 
         self.checkCyclic()
 
-        self.activator = InjectorFactory.getInitInjector(binding)
+        self.activator = binding.activator
         self.injectors = InjectorFactory.getInstanceInjectors(binding)
 
         self.activator_deps = self.collectDependencies(self.activator)
         self.other_deps = [self.collectDependencies(inj) for inj in self.injectors]
 
     def activate(self):
+        log.debug("Activating the '%s'", self.binding)
+
         activator_deps = self.activateDependencies(self.activator_deps)
-        inst = self.activator.inject(None, activator_deps)
+        inst = self.binding.scope.get(self.binding, activator_deps)
         self.inject(inst)
+
+        log.debug("'%s' activated as '%s'", self.binding, inst)
         return inst
 
     def inject(self, inst):

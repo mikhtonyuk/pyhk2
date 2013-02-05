@@ -1,7 +1,13 @@
 from interfaces import IStartup
 
-from hk2.injection import Container
+from hk2.injection import Container, NoScope
 from plugin_loaders.sysmod_plugin_loader import SysmodPluginLoader
+
+from hk2.annotations import Service
+from hk2.types import Annotations
+
+import logging
+log = logging.getLogger(__name__)
 
 #===========================================================
 
@@ -10,6 +16,8 @@ class Habitat(object):
         """
         :type plugin_loader: IPluginLoader
         """
+        log.debug("Initializing Habitat")
+
         self._loader = plugin_loader or SysmodPluginLoader()
         self._ioc = Container()
         self._services = set()
@@ -38,11 +46,18 @@ class Habitat(object):
         self._ioc.bind(Habitat, self)
 
         for s, cts in self._servicesToContracts.iteritems():
+            [annot] = filter(lambda x: isinstance(x, Service), Annotations.getAnnotations(s))
+            scope = annot.scope or NoScope
+            scope = scope()
+            
             for c in cts:
-                self._ioc.bind(c, s)
+                self._ioc.bind(c, s, scope)
 
     def _getServiceContracts(self, svc, contracts):
         return [c for c in contracts if issubclass(svc, c)]
+
+    def getByContract(self, contract):
+        return self._ioc.get(contract)
 
     def getAllByContract(self, contract):
         return self._ioc.getAll(contract)

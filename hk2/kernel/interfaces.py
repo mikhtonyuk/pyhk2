@@ -25,7 +25,5 @@ class IPluginLoader(object):
 @Contract()
 @interface
 class IStartup(object):
-    def start(self):
+    def start(self, start_params):
         """Runs the startup service"""
-
-#===========================================================
