@@ -5,7 +5,7 @@ import hk2.utils.func as fn
 
 import os
 import logging
-log = logging.getLogger(__name__)
+log = logging.getLogger('hk2')
 
 #===========================================================
 

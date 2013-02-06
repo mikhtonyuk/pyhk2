@@ -4,7 +4,7 @@ from hk2.annotations import Contract, Service
 from interfaces import IModuleScanner
 
 import logging
-log = logging.getLogger(__name__)
+log = logging.getLogger('hk2')
 
 #===========================================================
 

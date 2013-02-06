@@ -6,7 +6,7 @@ from inject import inject_param, allof
 from scopes import NoScope
 
 import logging
-log = logging.getLogger(__name__)
+log = logging.getLogger('hk2')
 
 #===========================================================
 

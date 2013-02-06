@@ -7,7 +7,7 @@ from hk2.annotations import Service
 from hk2.types import Annotations
 
 import logging
-log = logging.getLogger(__name__)
+log = logging.getLogger('hk2')
 
 #===========================================================
 

@@ -3,7 +3,7 @@ from injectors import InjectorFactory
 from exceptions import InjectionError, DeepInjectionError
 
 import logging
-log = logging.getLogger(__name__)
+log = logging.getLogger('hk2')
 
 #===========================================================
 
