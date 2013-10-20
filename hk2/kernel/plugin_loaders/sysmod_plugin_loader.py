@@ -16,7 +16,7 @@ class SysmodPluginLoader(IPluginLoader):
         contracts = []
         services = []
 
-        for m in sys.modules.itervalues():
+        for m in list(sys.modules.itervalues()):
             if m:
                 c, s = scanner.scan(m)
                 if c or s:
