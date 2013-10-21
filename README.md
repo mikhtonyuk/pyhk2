@@ -5,6 +5,14 @@ Python Hundred-Kilobyte Kernel library.
 
 It is inspired by [HK2 library] for Java that allows easily create plug-in based applications.
 
+This library provides:
+* Marking classes as services and interfaces as contracts thus declaring explicitly possible extension points and their implementations
+* Runtime discovery of services and contracts
+* Inversion of Control (IoC) and dependency injection (DI)
+* API for fine-level control over service instantiation
+* Lifetime control mechanisms (scopes)
+* Custom injection resolution
+
 
 Interfaces for programming to contracts
 ---------------------------------------
@@ -13,7 +21,7 @@ Interfaces for programming to contracts
 <code>
 @interface
 class IFoo(object):
-	def foo(self):
+    def foo(self):
 		'''Does foo'''
 
 @interface
@@ -64,6 +72,10 @@ foo bar !
 Service registry
 --------------------
 
+Primary way of using the *pyhk2* library is by using decorator-based service discovery. This mechanism is based on using following decorators:
+* **Contract** decorator - marks interface as a potential extension point
+* **Service** decorator - marks class as implementation of one or many extension points
+
 <pre>
 <code>
 @interface
@@ -86,6 +98,10 @@ for r in reporters:
 </code>
 </pre>
 
+Example above demonstrates explicit instantiation of extensions via *Habitat*. *Habitat* is the client-side interface that represents the kernel. Habitat provides methods to look-up services manually, and explore the extension graph. You can inject *Habitat* into your services like any other service.
 
+However, using *Habitat* explicitly is rarely needed, simpler and cleaner way to resolve the extensions by contract is to use dependency injection mechanism.
+
+Explicit instantiation via *Habitat* is primarily useful for delayed instantiation of extensions, but in other cases prefer injection or you'll end up with *Service Locator* anti-pattern.
 
 [HK2 library]:http://hk2.java.net
